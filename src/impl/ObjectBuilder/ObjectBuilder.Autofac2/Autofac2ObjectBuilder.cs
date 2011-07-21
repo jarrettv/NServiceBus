@@ -19,20 +19,32 @@ namespace NServiceBus.ObjectBuilder.Autofac2
         ///<param name="container"></param>
         public Autofac2ObjectBuilder(IContainer container)
         {
-            this.Container = container;
+            RootAutofacContainer = container;
         }
 
         ///<summary>
         /// Instantites the class with a new Autofac container.
         ///</summary>
-        public Autofac2ObjectBuilder() : this(new ContainerBuilder().Build())
+        public Autofac2ObjectBuilder()
+            : this(new ContainerBuilder().Build())
         {
         }
 
         /// <summary>
-        /// The container itself.
+        /// The root autofac container
         /// </summary>
-        public IContainer Container { get; set; }
+        public static Autofac.IContainer RootAutofacContainer;
+
+        /// <summary>
+        /// Container scoped to the current message.
+        /// </summary>
+        [ThreadStatic]
+        public static ILifetimeScope MessageLifetimeScope;
+
+        /// <summary>
+        /// Use the message-scoped container if present, otherwise the root container
+        /// </summary>
+        private ILifetimeScope Container { get { return MessageLifetimeScope ?? RootAutofacContainer; } }
 
         ///<summary>
         /// Build an instance of a given type using Autofac.
@@ -51,7 +63,8 @@ namespace NServiceBus.ObjectBuilder.Autofac2
         ///<returns></returns>
         public IEnumerable<object> BuildAll(Type typeToBuild)
         {
-            return this.Container.ResolveAll(typeToBuild);
+            var type = typeToBuild.MakeArrayType();
+            return (IEnumerable<object>)this.Container.Resolve(type);
         }
 
         void Common.IContainer.Configure(Type component, ComponentCallModelEnum callModel)
@@ -64,7 +77,7 @@ namespace NServiceBus.ObjectBuilder.Autofac2
                 Type[] services = component.GetAllServices().ToArray();
                 var registrationBuilder = builder.RegisterType(component).As(services).PropertiesAutowired();
                 SetLifetimeScope(callModel, registrationBuilder);
-                builder.Update(this.Container);
+                builder.Update(RootAutofacContainer);
             }
         }
 
@@ -111,7 +124,7 @@ namespace NServiceBus.ObjectBuilder.Autofac2
         {
             var builder = new ContainerBuilder();
             builder.RegisterInstance(instance).As(lookupType).ExternallyOwned().PropertiesAutowired();
-            builder.Update(this.Container);
+            builder.Update(RootAutofacContainer);
         }
 
         private IComponentRegistration GetComponentRegistration(Type concreteComponent)

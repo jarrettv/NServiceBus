@@ -61,6 +61,7 @@
     <Compile Include="..\..\..\CommonAssemblyInfo.cs">
       <Link>CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Autofac2MessageModule.cs" />
     <Compile Include="Autofac2ObjectBuilder.cs" />
     <Compile Include="Config\ConfigureAutofacBuilder.cs" />
     <Compile Include="Internal\ContainerExtensions.cs" />
